@@ -1,0 +1,30 @@
+---
+import "../styles/global.css";
+
+interface Props { title?: string; description?: string }
+const { title = "Marcin Petrów", description = "Notes, experiments, and things in progress." } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#f5f4ef" />
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" type="application/rss+xml" title="Marcin Petrów — Notes" href="/rss.xml" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <a class="skip" href="#content">Skip to content</a>
+    <div class="shell">
+      <header class="header">
+        <a class="wordmark" href="/" aria-label="Marcin Petrów home"><span class="mark">mp<span>.</span></span><span>Marcin Petrów</span></a>
+        <nav aria-label="Main navigation"><a href="/">Notes</a><a href="https://petrow.pl/">Projects ↗</a><a href="https://github.com/MarcinPetrow">GitHub ↗</a></nav>
+      </header>
+      <main id="content"><slot /></main>
+      <footer class="footer"><span>© {new Date().getUTCFullYear()} Marcin Petrów</span><a href="/rss.xml">RSS feed ↗</a></footer>
+    </div>
+  </body>
+</html>
