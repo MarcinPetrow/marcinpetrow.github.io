@@ -1,0 +1,17 @@
+---
+import Base from "../layouts/Base.astro";
+import { formatDate, publishedPosts } from "../lib/posts";
+const posts = await publishedPosts();
+---
+<Base>
+  <section class="intro">
+    <p class="eyebrow"><span class="dot"></span> A PERSONAL SPACE ON THE INTERNET</p>
+    <h1>Notes on making<br /><em>things work.</em></h1>
+    <p class="lede">A place for ideas, experiments, and the things worth writing down along the way.</p>
+  </section>
+  <section class="notes" aria-labelledby="notes-title">
+    <div class="section-heading"><div><p class="eyebrow">THE NOTEBOOK</p><h2 id="notes-title">Recent notes<span class="accent">.</span></h2></div><span class="count">{String(posts.length).padStart(2, "0")} {posts.length === 1 ? "NOTE" : "NOTES"}</span></div>
+    {posts.length ? <ol class="post-list">{posts.map((post) => <li><a class="post-link" href={`/notes/${post.id}/`}><div><time datetime={post.data.pubDate.toISOString()}>{formatDate(post.data.pubDate)}</time><h3>{post.data.title}</h3><p>{post.data.description}</p></div><span class="arrow" aria-hidden="true">↗</span></a></li>)}</ol> : <div class="empty"><span class="empty-icon" aria-hidden="true">✳</span><div><h3>There’s room for a first note.</h3><p>New writing will appear here as it’s published.</p></div></div>}
+  </section>
+  <section class="elsewhere"><div><p class="eyebrow">ELSEWHERE</p><h2>In the meantime<span class="accent">.</span></h2><p>Find my projects and experiments on the other side of the internet.</p></div><a class="project-link" href="https://petrow.pl/">Explore the sandbox <span>↗</span></a></section>
+</Base>
