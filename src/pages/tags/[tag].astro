@@ -1,0 +1,10 @@
+---
+import Base from "../../layouts/Base.astro";
+import { formatDate, publishedPosts, publishedTags, tagSlug } from "../../lib/posts";
+export async function getStaticPaths() { return (await publishedTags()).map((tag) => ({ params: { tag: tag.slug }, props: { tag } })); }
+const { tag } = Astro.props;
+const posts = (await publishedPosts()).filter((post) => post.data.tags.some((name) => tagSlug(name) === tag.slug));
+---
+<Base title={`${tag.name} — Topics — Marcin Petrów`} description={`Notes about ${tag.name}.`}>
+  <section class="page"><p class="eyebrow"><span class="dot"></span> TOPIC</p><h1>{tag.name}<span class="accent">.</span></h1><p class="lede">Notes filed under this topic.</p><div class="page-section"><ol class="post-list">{posts.map((post) => <li><a class="post-link" href={`/notes/${post.id}/`}><div><time datetime={post.data.pubDate.toISOString()}>{formatDate(post.data.pubDate)}</time><h2>{post.data.title}</h2><p>{post.data.description}</p></div><span class="arrow" aria-hidden="true">↗</span></a></li>)}</ol></div></section>
+</Base>

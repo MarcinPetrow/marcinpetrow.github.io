@@ -35,4 +35,8 @@ Draft posts are excluded from the generated site and RSS feed. The GitHub reposi
 
 Set Settings → Pages → Build and deployment → Source to **GitHub Actions**. Pull requests are checked without deployment; pushes to `master` build and publish. The existing Pages site remains the active version until a new deployment succeeds.
 
-To use a custom domain later, update `site` in `astro.config.mjs` and configure the domain in GitHub Pages and your DNS provider.
+## Custom domain
+
+The site is configured to use `https://marcin.petrow.pl` as its canonical address. The published `CNAME` file makes GitHub Pages serve that domain after it is configured in the repository’s Pages settings.
+
+In DNS, create a `CNAME` record for `marcin` pointing to `marcinpetrow.github.io`. Then set `marcin.petrow.pl` as the custom domain in Settings → Pages and enable **Enforce HTTPS** once GitHub has issued the certificate.
