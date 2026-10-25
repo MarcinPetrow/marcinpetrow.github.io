@@ -1,8 +1,0 @@
----
-import Base from "../layouts/Base.astro";
-import { formatDate, publishedPosts } from "../lib/posts";
-const posts = await publishedPosts();
----
-<Base title="Archive — Marcin Petrów" description="All notes by Marcin Petrów.">
-  <section class="page"><p class="eyebrow"><span class="dot"></span> THE NOTEBOOK</p><h1>Archive<span class="accent">.</span></h1><p class="lede">Every published note, in one place.</p><div class="page-section">{posts.length ? <ol class="post-list">{posts.map((post) => <li><a class="post-link" href={`/notes/${post.id}/`}><div><time datetime={post.data.pubDate.toISOString()}>{formatDate(post.data.pubDate)}</time><h2>{post.data.title}</h2><p>{post.data.description}</p></div><span class="arrow" aria-hidden="true">↗</span></a></li>)}</ol> : <p>Nothing published yet.</p>}</div></section>
-</Base>

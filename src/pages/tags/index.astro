@@ -1,8 +1,0 @@
----
-import Base from "../../layouts/Base.astro";
-import { publishedTags } from "../../lib/posts";
-const tags = await publishedTags();
----
-<Base title="Topics — Marcin Petrów" description="Topics covered in Marcin Petrów’s notes.">
-  <section class="page"><p class="eyebrow"><span class="dot"></span> THE NOTEBOOK</p><h1>Topics<span class="accent">.</span></h1><p class="lede">Browse notes by the ideas they circle around.</p><div class="page-section">{tags.length ? <ul class="topic-list">{tags.map((tag) => <li><a href={`/tags/${tag.slug}/`}>{tag.name}</a></li>)}</ul> : <p>Topics will appear with the first published note.</p>}</div></section>
-</Base>
