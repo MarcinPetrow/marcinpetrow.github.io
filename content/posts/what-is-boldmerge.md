@@ -3,7 +3,7 @@ title: "What is BoldMerge?"
 description: "An independent product studio exploring how ideas, engineering, and AI can turn into real software."
 date: '2026-10-25'
 tags: [boldmerge, engineering, ai, product-development]
-draft: false
+draft: true
 ---
 
 BoldMerge is an independent product studio built around a simple idea: **good software starts with a problem worth solving, not a technology worth using.**

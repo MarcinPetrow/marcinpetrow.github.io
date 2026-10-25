@@ -3,7 +3,7 @@ title: A small dummy note
 description: A short placeholder for testing the blog’s reading experience.
 date: '2026-10-25'
 tags: [experiments, notes]
-draft: false
+draft: true
 ---
 
 This is a small placeholder note.
