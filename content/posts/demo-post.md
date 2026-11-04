@@ -6,3 +6,5 @@ draft: false
 ---
 
 Test post for tetsing an editor
+
+![DSC00093](/images/demo-post-dsc00093.jpg)
