@@ -36,6 +36,12 @@ class GitIdentity:
     configured: bool
 
 
+@dataclass(frozen=True)
+class SyncStatus:
+    key: str
+    label: str
+
+
 def _inside(root: Path, path: Path) -> bool:
     try:
         path.resolve().relative_to(root.resolve())
@@ -62,6 +68,50 @@ def publication_files(root: Path, post: PostDocument) -> tuple[str, ...]:
             candidates.append(path)
     relative = {path.resolve().relative_to(root.resolve()).as_posix() for path in candidates}
     return tuple(sorted(relative))
+
+
+def post_sync_status(root: Path, post: PostDocument) -> SyncStatus:
+    files = publication_files(root, post)
+    try:
+        status = subprocess.run(
+            ['git', 'status', '--porcelain', '--untracked-files=normal', '--', *files],
+            cwd=root,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+    except OSError:
+        return SyncStatus('unknown', 'Unknown')
+    if status.returncode:
+        return SyncStatus('unknown', 'Unknown')
+    changes = [line for line in status.stdout.splitlines() if line.strip()]
+    if changes:
+        if all(line.startswith('??') for line in changes):
+            return SyncStatus('unpublished', 'Not published')
+        return SyncStatus('local', 'Local changes')
+    try:
+        remote = subprocess.run(
+            ['git', 'rev-parse', '--verify', '--quiet', 'origin/master'],
+            cwd=root,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+    except OSError:
+        return SyncStatus('unknown', 'Unknown')
+    if remote.returncode:
+        return SyncStatus('unknown', 'Unknown')
+    difference = subprocess.run(
+        ['git', 'diff', '--quiet', 'origin/master', '--', *files],
+        cwd=root,
+        check=False,
+    )
+    if difference.returncode == 0:
+        return SyncStatus('synced', 'Synced')
+    if difference.returncode == 1:
+        return SyncStatus('different', 'Not synced')
+    return SyncStatus('unknown', 'Unknown')
 
 
 def _run(root: Path, command: list[str], timeout=180) -> str:

@@ -14,7 +14,12 @@ from blog_editor.document import (
     split_frontmatter,
 )
 from blog_editor.images import ImageEdits, edit_image, import_image
-from blog_editor.publisher import configure_git_identity, git_identity, publication_files
+from blog_editor.publisher import (
+    configure_git_identity,
+    git_identity,
+    post_sync_status,
+    publication_files,
+)
 
 
 class DocumentTests(unittest.TestCase):
@@ -24,7 +29,11 @@ class DocumentTests(unittest.TestCase):
         rebuilt = compose_source(metadata, body)
         again, again_body = split_frontmatter(rebuilt)
         self.assertEqual(metadata, again)
-        self.assertEqual('Hello', again_body)
+        self.assertEqual('Hello\n', again_body)
+
+    def test_compose_source_removes_trailing_whitespace_and_adds_final_newline(self):
+        source = compose_source({'title': 'Test'}, 'First line  \nSecond line\t')
+        self.assertTrue(source.endswith('First line\nSecond line\n'))
 
     def test_slugify(self):
         self.assertEqual('nowy-wpis-zolw', slugify('Nowy wpis: Żółw!'))
@@ -74,6 +83,47 @@ class PublisherTests(unittest.TestCase):
             self.assertTrue(identity.configured)
             self.assertEqual('Blog Author', identity.name)
             self.assertEqual('author@example.com', identity.email)
+
+    def test_post_sync_status(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            subprocess.run(['git', 'init', '-q'], cwd=root, check=True)
+            configure_git_identity(root, 'Blog Author', 'author@example.com')
+            post_path = root / 'content' / 'posts' / 'example.md'
+            post_path.parent.mkdir(parents=True)
+            post_path.write_text(
+                '---\ntitle: Example\ndate: 2026-01-01\n---\n\nBody', encoding='utf-8'
+            )
+            post = PostDocument.load(post_path)
+            self.assertEqual('unpublished', post_sync_status(root, post).key)
+            subprocess.run(['git', 'add', '.'], cwd=root, check=True)
+            subprocess.run(['git', 'commit', '-qm', 'Initial'], cwd=root, check=True)
+            subprocess.run(
+                ['git', 'update-ref', 'refs/remotes/origin/master', 'HEAD'],
+                cwd=root,
+                check=True,
+            )
+            self.assertEqual('synced', post_sync_status(root, post).key)
+            post_path.write_text(post_path.read_text() + '\nChanged', encoding='utf-8')
+            self.assertEqual('local', post_sync_status(root, post).key)
+            subprocess.run(['git', 'add', '.'], cwd=root, check=True)
+            subprocess.run(['git', 'commit', '-qm', 'Change post'], cwd=root, check=True)
+            self.assertEqual('different', post_sync_status(root, post).key)
+
+    def test_post_sync_status_is_unknown_without_remote(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            subprocess.run(['git', 'init', '-q'], cwd=root, check=True)
+            post_path = root / 'content' / 'posts' / 'example.md'
+            post_path.parent.mkdir(parents=True)
+            post_path.write_text(
+                '---\ntitle: Example\ndate: 2026-01-01\n---\n\nBody', encoding='utf-8'
+            )
+            subprocess.run(['git', 'add', '.'], cwd=root, check=True)
+            configure_git_identity(root, 'Blog Author', 'author@example.com')
+            subprocess.run(['git', 'commit', '-qm', 'Initial'], cwd=root, check=True)
+            post = PostDocument.load(post_path)
+            self.assertEqual('unknown', post_sync_status(root, post).key)
 
     def test_publication_contains_post_and_referenced_local_images(self):
         with tempfile.TemporaryDirectory() as folder:

@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=Blog Editor
 Comment=Write and manage posts for the Astro blog
-Exec=sh -c 'cd /home/marcin/source/marcinpetrow.github.io && ./editor/blog-editor'
+Exec=/home/marcin/source/marcinpetrow.github.io/editor/blog-editor
 Icon=accessories-text-editor
 Terminal=false
 Type=Application

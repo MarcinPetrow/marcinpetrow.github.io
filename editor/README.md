@@ -26,6 +26,7 @@ PyYAML, and Pillow. On Ubuntu these correspond to packages similar to
 
 - Browse and search all existing Markdown and MDX posts.
 - Edit title, description, date, tags, draft state, cover image, and Markdown.
+- Autosave edits locally and show whether each post is synced with `origin/master`.
 - See a live local preview without uploading content.
 - Create new draft posts with safe filenames.
 - Import images into `public/images/` and insert valid Astro Markdown links.

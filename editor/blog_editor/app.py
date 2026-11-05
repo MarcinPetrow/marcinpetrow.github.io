@@ -16,6 +16,7 @@ from .images import ImageEdits, edit_image, import_image
 from .publisher import (
     configure_git_identity,
     git_identity,
+    post_sync_status,
     publication_files,
     publish_post,
     update_repository,
@@ -153,6 +154,18 @@ button:hover { background: #3a3a3a; }
   border-right-color: #ef762f;
   color: #ffffff;
 }
+.sync-badge {
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+}
+.sync-badge.synced { background: #263c32; color: #8fdbb4; }
+.sync-badge.unsaved { background: #49362c; color: #ffc092; }
+.sync-badge.local { background: #49362c; color: #ffc092; }
+.sync-badge.unpublished { background: #3d344a; color: #cbb4ed; }
+.sync-badge.different { background: #4a2f2f; color: #ffadad; }
+.sync-badge.unknown { background: #383838; color: #b5b5b5; }
 .sidebar-nav { border-bottom: 1px solid #383838; padding-bottom: 8px; }
 .sidebar-nav button {
   min-height: 38px;
@@ -216,6 +229,12 @@ button:hover { background: #3a3a3a; }
   color: #e7e7e7;
 }
 .content-insert:hover { background: #393939; border-color: #ef762f; }
+.save-status {
+  color: #858585;
+  font-size: 10px;
+  font-weight: 600;
+}
+.save-status.saving { color: #ff9a52; }
 .panel-toggle {
   min-height: 38px;
   padding: 0 12px;
@@ -359,6 +378,7 @@ class TagEditor(Gtk.Box):
         self.emit('changed')
 
     def set_tags(self, values):
+        self.entry.set_text('')
         while child := self.chips.get_first_child():
             self.chips.remove(child)
         self.tags = []
@@ -366,11 +386,15 @@ class TagEditor(Gtk.Box):
             self.add_tag(str(value), emit=False)
         self.emit('changed')
 
-    def get_tags(self) -> list[str]:
+    def commit_pending(self) -> bool:
         pending = self.entry.get_text().strip()
         if pending:
             self.add_tag(pending)
             self.entry.set_text('')
+            return True
+        return False
+
+    def get_tags(self) -> list[str]:
         return list(self.tags)
 
 
@@ -381,6 +405,8 @@ class BlogEditorWindow(Adw.ApplicationWindow):
         self.posts: list[PostDocument] = []
         self.current: PostDocument | None = None
         self.dirty = False
+        self.loading_document = False
+        self.autosave_timer = 0
         self.status_filter = 'all'
         self.preview_timer = 0
         self.set_default_size(1440, 900)
@@ -444,10 +470,6 @@ class BlogEditorWindow(Adw.ApplicationWindow):
         new_button.add_css_class('toolbar-action')
         new_button.connect('clicked', self._show_new_post)
         topbar.append(new_button)
-        save_button = Gtk.Button(icon_name='document-save-symbolic', tooltip_text='Save')
-        save_button.add_css_class('toolbar-action')
-        save_button.connect('clicked', self._save)
-        topbar.append(save_button)
         self.publish_button = Gtk.Button(tooltip_text='Commit and publish this post')
         publish_content = Gtk.Box(spacing=7)
         publish_content.append(Gtk.Image.new_from_icon_name('send-to-symbolic'))
@@ -664,6 +686,9 @@ class BlogEditorWindow(Adw.ApplicationWindow):
         content_label = Gtk.Label(label='CONTENT', xalign=0, hexpand=True)
         content_label.add_css_class('content-label')
         content_header.append(content_label)
+        self.save_status = Gtk.Label(label='Saved')
+        self.save_status.add_css_class('save-status')
+        content_header.append(self.save_status)
         insert_image = Gtk.Button(tooltip_text='Copy an image to the repository and insert it')
         insert_content = Gtk.Box(spacing=6)
         insert_content.append(Gtk.Image.new_from_icon_name('insert-image-symbolic'))
@@ -752,9 +777,18 @@ class BlogEditorWindow(Adw.ApplicationWindow):
             content.set_margin_bottom(8)
             content.set_margin_start(8)
             content.set_margin_end(8)
-            title = Gtk.Label(label=post.title, xalign=0, ellipsize=3)
+            title_line = Gtk.Box(spacing=6)
+            title = Gtk.Label(label=post.title, xalign=0, ellipsize=3, hexpand=True)
             title.add_css_class('heading')
-            content.append(title)
+            title_line.append(title)
+            status = post_sync_status(self.root, post)
+            sync_label = Gtk.Label(label=status.label)
+            sync_label.add_css_class('sync-badge')
+            sync_label.add_css_class(status.key)
+            row.sync_label = sync_label
+            row.sync_key = status.key
+            title_line.append(sync_label)
+            content.append(title_line)
             details = f'{post.metadata.get("date", "")}  ·  {post.path.name}'
             subtitle = Gtk.Label(label=details, xalign=0, ellipsize=3)
             subtitle.add_css_class('dim-label')
@@ -799,6 +833,7 @@ class BlogEditorWindow(Adw.ApplicationWindow):
         if self.dirty:
             self._save(show_message=False)
         self.current = row.post
+        self.loading_document = True
         self.dirty = False
         data = self.current.metadata
         self.page_title.set_label(self.current.title)
@@ -820,11 +855,36 @@ class BlogEditorWindow(Adw.ApplicationWindow):
         self.draft_switch.set_active(bool(data.get('draft', False)))
         self.text_view.get_buffer().set_text(self.current.body)
         self.dirty = False
+        self.loading_document = False
+        self.save_status.set_label('Saved')
+        self.save_status.remove_css_class('saving')
+        status = post_sync_status(self.root, self.current)
+        self._set_sync_label(row, status.key, status.label)
         self._update_preview()
 
     def _metadata_changed(self, *_):
-        if self.current:
+        if self.current and not self.loading_document:
             self.dirty = True
+            self._mark_current_unsaved()
+            self._schedule_autosave()
+
+    def _set_sync_label(self, row, key: str, label: str):
+        if not row or not hasattr(row, 'sync_label'):
+            return
+        row.sync_label.remove_css_class(row.sync_key)
+        row.sync_key = key
+        row.sync_label.add_css_class(key)
+        row.sync_label.set_label(label)
+
+    def _mark_current_unsaved(self):
+        self._set_sync_label(self.post_list.get_selected_row(), 'unsaved', 'Unsaved')
+
+    def _refresh_sync_indicators(self):
+        row = self.post_list.get_first_child()
+        while row:
+            status = post_sync_status(self.root, row.post)
+            self._set_sync_label(row, status.key, status.label)
+            row = row.get_next_sibling()
 
     def _update_cover_preview(self, *_):
         value = self.cover_entry.get_text().strip()
@@ -846,12 +906,28 @@ class BlogEditorWindow(Adw.ApplicationWindow):
             self.cover_preview.set_paintable(None)
 
     def _content_changed(self, *_):
-        if not self.current:
+        if not self.current or self.loading_document:
             return
         self.dirty = True
+        self._mark_current_unsaved()
+        self._schedule_autosave()
         if self.preview_timer:
             GLib.source_remove(self.preview_timer)
         self.preview_timer = GLib.timeout_add(250, self._update_preview)
+
+    def _schedule_autosave(self):
+        if self.autosave_timer:
+            GLib.source_remove(self.autosave_timer)
+        self.save_status.set_label('Saving…')
+        self.save_status.add_css_class('saving')
+        self.autosave_timer = GLib.timeout_add(900, self._autosave)
+
+    def _autosave(self):
+        self.autosave_timer = 0
+        if self.dirty and self._save(show_message=False):
+            self.save_status.set_label('Saved')
+            self.save_status.remove_css_class('saving')
+        return GLib.SOURCE_REMOVE
 
     def _body_text(self):
         buffer = self.text_view.get_buffer()
@@ -881,19 +957,31 @@ class BlogEditorWindow(Adw.ApplicationWindow):
 
     def _save(self, *_args, show_message=True):
         if not self.current:
-            return
+            return False
         try:
+            self.tags_editor.commit_pending()
+            if self.autosave_timer:
+                GLib.source_remove(self.autosave_timer)
+                self.autosave_timer = 0
             self._apply_form()
             self.current.save()
             self.dirty = False
+            self._refresh_sync_indicators()
+            self.save_status.set_label('Saved')
+            self.save_status.remove_css_class('saving')
             if show_message:
                 self._toast('Post saved')
+            return True
         except Exception as error:
+            self.save_status.set_label('Save failed')
+            self.save_status.remove_css_class('saving')
             self._error(str(error))
+            return False
 
     def _confirm_publish(self, *_):
         if not self.current:
             return
+        self.tags_editor.commit_pending()
         identity = git_identity(self.root)
         if not identity.configured:
             self._show_git_identity(identity)
@@ -956,12 +1044,7 @@ class BlogEditorWindow(Adw.ApplicationWindow):
     def _start_publish(self, _dialog, response):
         if response != 'publish' or not self.current:
             return
-        try:
-            self._apply_form()
-            self.current.save()
-            self.dirty = False
-        except Exception as error:
-            self._error(str(error))
+        if not self._save(show_message=False):
             return
         post = self.current
         self.publish_button.set_sensitive(False)
@@ -978,6 +1061,7 @@ class BlogEditorWindow(Adw.ApplicationWindow):
 
     def _publish_finished(self, result, error):
         self.publish_button.set_sensitive(True)
+        self._refresh_sync_indicators()
         if error:
             self._error(f'Publishing failed:\n\n{error}')
             return GLib.SOURCE_REMOVE
@@ -1011,15 +1095,11 @@ class BlogEditorWindow(Adw.ApplicationWindow):
     def _start_update(self, _dialog, response):
         if response != 'update':
             return
-        try:
-            if self.current:
-                self._apply_form()
-                self.current.save()
-                self.dirty = False
-            selected = self.current.path if self.current else None
-        except Exception as error:
-            self._error(str(error))
-            return
+        if self.current:
+            self.tags_editor.commit_pending()
+            if not self._save(show_message=False):
+                return
+        selected = self.current.path if self.current else None
         self.update_button.set_sensitive(False)
         self.publish_button.set_sensitive(False)
         self._toast('Updating repository…')

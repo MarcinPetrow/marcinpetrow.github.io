@@ -57,7 +57,8 @@ def compose_source(metadata: dict, body: str) -> str:
         sort_keys=False,
         default_flow_style=False,
     ).rstrip()
-    return f'---\n{frontmatter}\n---\n\n{body.lstrip()}'
+    clean_body = '\n'.join(line.rstrip() for line in body.lstrip().splitlines())
+    return f'---\n{frontmatter}\n---\n\n{clean_body.rstrip()}\n'
 
 
 def slugify(value: str) -> str:
