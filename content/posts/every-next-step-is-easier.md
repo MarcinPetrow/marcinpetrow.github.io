@@ -3,7 +3,10 @@ title: Every next step is easier
 description: It's not hard to do stuff. It's hard to start doing.
 date: '2026-11-05'
 image: /images/every-next-step-is-easier-zrzut-ekranu-z-2026-11-05-08-57-22.png
-tags: []
+tags:
+- tools
+- overengineering
+- blog
 draft: false
 ---
 
