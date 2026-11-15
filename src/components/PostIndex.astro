@@ -11,8 +11,9 @@ import type { Locale } from '../types/config';
 interface Props {
   lang: Locale;
   page?: number;
+  home?: boolean;
 }
-const { lang, page = 1 } = Astro.props;
+const { lang, page = 1, home = false } = Astro.props;
 const posts = await postsFor(lang);
 const pageSize = Math.max(1, config.posts.perPage);
 const pages = Math.max(1, Math.ceil(posts.length / pageSize));
@@ -21,7 +22,14 @@ const ui = t(lang);
 const intro = await introFor('posts', lang);
 const title = intro?.data.title ?? ui.postsTitle;
 const pageHref = (number: number) =>
-  href(lang, number === 1 ? 'posts/' : `posts/page/${number}/`);
+  href(
+    lang,
+    number === 1 && home
+      ? ''
+      : number === 1
+        ? 'posts/'
+        : `posts/page/${number}/`,
+  );
 const alternatePaths = Object.fromEntries(
   (
     await Promise.all(
@@ -34,7 +42,14 @@ const alternatePaths = Object.fromEntries(
           ? [
               [
                 locale,
-                href(locale, page === 1 ? 'posts/' : `posts/page/${page}/`),
+                href(
+                  locale,
+                  page === 1 && home
+                    ? ''
+                    : page === 1
+                      ? 'posts/'
+                      : `posts/page/${page}/`,
+                ),
               ] as [Locale, string],
             ]
           : [];

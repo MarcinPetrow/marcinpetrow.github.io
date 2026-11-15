@@ -50,25 +50,21 @@ const config: BlogConfig = {
   sidebar: {
     items: [
       {
-        id: 'home',
-        type: 'builtin',
-        route: 'home',
-        label: 'Home',
-        icon: 'square-pen',
-      },
-      {
         id: 'posts',
         type: 'builtin',
-        route: 'posts',
+        route: 'home',
         label: 'Notes',
         icon: 'files',
       },
-      { id: 'about', type: 'page', page: 'about', label: 'About', icon: 'info' },
+      {
+        id: 'about',
+        type: 'page',
+        page: 'about',
+        label: 'About',
+        icon: 'info',
+      },
     ],
-    menu: [
-      { id: 'home', type: 'builtin', route: 'home', label: 'Home' },
-      { id: 'posts', type: 'builtin', route: 'posts', label: 'Notes' },
-    ],
+    menu: [{ id: 'posts', type: 'builtin', route: 'home', label: 'Notes' }],
     width: { default: 340, min: 240, max: 480 },
   },
   appearance: {
