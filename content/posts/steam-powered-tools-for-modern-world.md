@@ -5,7 +5,7 @@ description: Old screwdrives still works well with screws, sometimes is even bet
 date: '2026-11-15'
 image: /images/steam-powered-tools-for-modern-world-dsc00096.jpg
 tags: []
-draft: true
+draft: false
 ---
 
 It's started as usual. We talked. New tool arrived (cmux) and discussion has started. Initially we both were excited. It's like two kid in a sandbox when someone brings new bucket, with perfect handle, nice color and since begining we had eyes widely opened.
