@@ -4,7 +4,10 @@ description: Old screwdrives still works well with screws, sometimes is even bet
   because of used steal. Inventing wheel over and over anagin is a waste of time
 date: '2026-11-15'
 image: /images/steam-powered-tools-for-modern-world-dsc00096.jpg
-tags: []
+tags:
+- tmux
+- oldschool
+- mindset
 draft: false
 ---
 
