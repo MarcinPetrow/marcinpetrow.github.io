@@ -7,6 +7,7 @@ image: /images/i-ve-lost-my-e-books-bcf08241-5d8e-4309-ad1b-d0f9cf0f7c77.png
 tags:
 - kindle-ai-recovery
 draft: false
+shareCover: false
 ---
 
 I thought that would be a good idea to have some of my books in one virtual place, i.e., when I'm waiting for something outside my house or traveling.
