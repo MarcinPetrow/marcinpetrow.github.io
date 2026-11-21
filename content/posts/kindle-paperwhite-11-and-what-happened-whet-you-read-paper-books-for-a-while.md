@@ -5,8 +5,8 @@ description: Kindle decide to move my stuff out. Is paper better than technology
 date: '2026-11-16'
 image: /images/i-ve-lost-my-e-books-bcf08241-5d8e-4309-ad1b-d0f9cf0f7c77.png
 tags:
-- kindle ai recovery
-draft: true
+- kindle-ai-recovery
+draft: false
 ---
 
 I thought that will be good idea to have some of my books in one virtual place avaliable i.e. when I'm wait for something out of my house or travel.
